@@ -1,6 +1,8 @@
 ![](https://i.imgur.com/CP4SZpB.png)
 
-[![Downloads](https://i.imgur.com/MMc0PJY.png)](https://ci.drtshock.net/job/EssentialsX)
+[![Downloads](https://i.imgur.com/MMc0PJY.png)](http://ci.ender.zone/job/EssentialsX/)
+
+**Mirror**: https://ci.akpmakes.tech/job/EssentialsX/
 
 This is a fork of Essentials called EssentialsX.
 
