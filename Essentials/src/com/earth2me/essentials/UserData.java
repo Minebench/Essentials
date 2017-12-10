@@ -7,6 +7,7 @@ import net.ess3.api.IEssentials;
 import net.ess3.api.InvalidWorldException;
 import net.ess3.api.MaxMoneyException;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -15,7 +16,10 @@ import java.io.File;
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.function.Function;
+import java.util.logging.Level;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static com.earth2me.essentials.I18n.tl;
 
@@ -231,28 +235,28 @@ public abstract class UserData extends PlayerExtension implements IConf {
         config.save();
     }
 
-    private List<Integer> unlimited;
+    private List<Material> unlimited;
 
-    private List<Integer> _getUnlimited() {
-        return config.getIntegerList("unlimited");
+    private List<Material> _getUnlimited() {
+        return config.getStringList("unlimited").stream().map(Material::matchMaterial).collect(Collectors.toList());
     }
 
-    public List<Integer> getUnlimited() {
+    public List<Material> getUnlimited() {
         return unlimited;
     }
 
     public boolean hasUnlimited(ItemStack stack) {
-        return unlimited.contains(stack.getTypeId());
+        return unlimited.contains(stack.getType());
     }
 
     public void setUnlimited(ItemStack stack, boolean state) {
-        if (unlimited.contains(stack.getTypeId())) {
-            unlimited.remove(Integer.valueOf(stack.getTypeId()));
+        if (unlimited.contains(stack.getType())) {
+            unlimited.remove(stack.getType());
         }
         if (state) {
-            unlimited.add(stack.getTypeId());
+            unlimited.add(stack.getType());
         }
-        config.setProperty("unlimited", unlimited);
+        config.setProperty("unlimited", unlimited.stream().map(Material::toString).collect(Collectors.toList()));
         config.save();
     }
 
@@ -273,19 +277,19 @@ public abstract class UserData extends PlayerExtension implements IConf {
 
     @SuppressWarnings("unchecked")
     public List<String> getPowertool(ItemStack stack) {
-        return (List<String>) powertools.get("" + stack.getTypeId());
+        return (List<String>) powertools.get(stack.getType().toString());
     }
 
     @SuppressWarnings("unchecked")
-    public List<String> getPowertool(int id) {
-        return (List<String>) powertools.get("" + id);
+    public List<String> getPowertool(Material type) {
+        return (List<String>) powertools.get(type.toString());
     }
 
     public void setPowertool(ItemStack stack, List<String> commandList) {
         if (commandList == null || commandList.isEmpty()) {
-            powertools.remove("" + stack.getTypeId());
+            powertools.remove(stack.getType().toString());
         } else {
-            powertools.put("" + stack.getTypeId(), commandList);
+            powertools.put(stack.getType().toString(), commandList);
         }
         config.setProperty("powertools", powertools);
         config.save();

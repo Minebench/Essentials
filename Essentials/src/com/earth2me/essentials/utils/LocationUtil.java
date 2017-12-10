@@ -9,6 +9,7 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.inventory.ItemStack;
 
+import java.lang.reflect.Method;
 import java.util.*;
 
 import static com.earth2me.essentials.I18n.tl;
@@ -198,7 +199,6 @@ public class LocationUtil {
         VOLUME = pos.toArray(new Vector3D[0]);
     }
 
-    @SuppressWarnings("deprecation")
     public static Location getTarget(final LivingEntity entity) throws Exception {
         Block block;
         try {
@@ -208,7 +208,8 @@ public class LocationUtil {
             for (Material m : TRANSPARENT_MATERIALS) {
                 legacyTransparent.add((byte) m.getId());
             }
-            block = entity.getTargetBlock(legacyTransparent, 300);
+            Method m = entity.getClass().getMethod("getTargetBlock", Set.class, int.class);
+            block = (Block) m.invoke(entity, legacyTransparent, 300);
         }
         if (block == null) {
             throw new Exception("Not targeting a block");

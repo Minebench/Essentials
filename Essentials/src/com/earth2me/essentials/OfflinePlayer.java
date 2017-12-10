@@ -199,8 +199,7 @@ public class OfflinePlayer implements Player {
     public List<Block> getLineOfSight(Set<Material> mat, int i) {
         return Collections.emptyList();
     }
-
-    @Override
+    
     public Block getTargetBlock(HashSet<Byte> hs, int i) {
         return null;
     }
@@ -209,8 +208,7 @@ public class OfflinePlayer implements Player {
     public Block getTargetBlock(Set<Material> mat, int i) {
         return null;
     }
-
-    @Override
+    
     public List<Block> getLastTwoTargetBlocks(HashSet<Byte> hs, int i) {
         return Collections.emptyList();
     }
@@ -741,11 +739,19 @@ public class OfflinePlayer implements Player {
     @Override
     public void hidePlayer(Player player) {
     }
-
+    
+    @Override
+    public void hidePlayer(Plugin plugin, Player player) {
+    }
+    
     @Override
     public void showPlayer(Player player) {
     }
-
+    
+    @Override
+    public void showPlayer(Plugin plugin, Player player) {
+    }
+    
     @Override
     public boolean canSee(Player player) {
         return false;

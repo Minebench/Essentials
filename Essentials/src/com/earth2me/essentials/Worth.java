@@ -39,28 +39,7 @@ public class Worth implements IConf {
         if (result.signum() < 0) {
             result = config.getBigDecimal("worth." + itemname, BigDecimal.ONE.negate());
         }
-
-        //Now we should check for item ID
-        if (result.signum() < 0) {
-            result = config.getBigDecimal("worth." + itemStack.getTypeId() + "." + itemStack.getDurability(), BigDecimal.ONE.negate());
-        }
-        if (result.signum() < 0) {
-            final ConfigurationSection itemNumberMatch = config.getConfigurationSection("worth." + itemStack.getTypeId());
-            if (itemNumberMatch != null && itemNumberMatch.getKeys(false).size() == 1) {
-                result = config.getBigDecimal("worth." + itemStack.getTypeId() + ".0", BigDecimal.ONE.negate());
-            }
-        }
-        if (result.signum() < 0) {
-            result = config.getBigDecimal("worth." + itemStack.getTypeId() + ".*", BigDecimal.ONE.negate());
-        }
-        if (result.signum() < 0) {
-            result = config.getBigDecimal("worth." + itemStack.getTypeId(), BigDecimal.ONE.negate());
-        }
-
-        //This is to match the old worth syntax
-        if (result.signum() < 0) {
-            result = config.getBigDecimal("worth-" + itemStack.getTypeId(), BigDecimal.ONE.negate());
-        }
+        
         if (result.signum() < 0) {
             return null;
         }
@@ -71,7 +50,7 @@ public class Worth implements IConf {
         if (is == null || is.getType() == Material.AIR) {
             throw new Exception(tl("itemSellAir"));
         }
-        int id = is.getTypeId();
+        Material type = is.getType();
         int amount = 0;
 
         if (args.length > 1) {
@@ -86,7 +65,7 @@ public class Worth implements IConf {
         }
 
         boolean stack = args.length > 1 && args[1].endsWith("s");
-        boolean requireStack = ess.getSettings().isTradeInStacks(id);
+        boolean requireStack = ess.getSettings().isTradeInStacks(type);
 
         if (requireStack && !stack) {
             throw new Exception(tl("itemMustBeStacked"));
@@ -130,7 +109,6 @@ public class Worth implements IConf {
             // Bukkit-bug: getDurability still contains the correct value, while getData().getData() is 0.
             config.setProperty("worth." + itemStack.getType().toString().toLowerCase(Locale.ENGLISH).replace("_", "") + "." + itemStack.getDurability(), price);
         }
-        config.removeProperty("worth-" + itemStack.getTypeId());
         config.save();
     }
 

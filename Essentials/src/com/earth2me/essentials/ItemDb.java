@@ -3,7 +3,6 @@ package com.earth2me.essentials;
 import com.earth2me.essentials.utils.NumberUtil;
 
 import net.ess3.nms.refl.ReflUtil;
-import net.ess3.nms.updatedmeta.BasePotionDataProvider;
 import com.earth2me.essentials.utils.StringUtil;
 import net.ess3.api.IEssentials;
 import org.apache.commons.lang.StringUtils;
@@ -20,6 +19,7 @@ import org.bukkit.potion.Potion;
 import org.bukkit.potion.PotionEffect;
 
 import java.util.*;
+import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -28,7 +28,7 @@ import static com.earth2me.essentials.I18n.tl;
 
 public class ItemDb implements IConf, net.ess3.api.IItemDb {
     private final transient IEssentials ess;
-    private final transient Map<String, Integer> items = new HashMap<>();
+    private final transient Map<String, Material> items = new HashMap<>();
     private final transient Map<ItemData, List<String>> names = new HashMap<>();
     private final transient Map<ItemData, String> primaryName = new HashMap<>();
     private final transient Map<String, Short> durabilities = new HashMap<>();
@@ -55,13 +55,14 @@ public class ItemDb implements IConf, net.ess3.api.IItemDb {
         names.clear();
         primaryName.clear();
 
-        for (String line : lines) {
+        for (int i = 0; i < lines.size(); i++) {
+            String line = lines.get(i);
             if (line.length() > 0 && line.charAt(0) == '#') {
                 continue;
             }
 
             String itemName = null;
-            int numeric = -1;
+            Material type = null;
             short data = 0;
             String nbt = null;
 
@@ -78,7 +79,11 @@ public class ItemDb implements IConf, net.ess3.api.IItemDb {
                         itemName = match.toLowerCase(Locale.ENGLISH);
                         break;
                     case 1:
-                        numeric = Integer.parseInt(match);
+                        try {
+                            type = Material.valueOf(match.toUpperCase());
+                        } catch (IllegalArgumentException e) {
+                            ess.getLogger().log(Level.WARNING, match + " is not a valid Material name in items.csv on line " + (i + 1) + "!");
+                        }
                         break;
                     case 2:
                         data = Short.parseShort(match);
@@ -92,16 +97,16 @@ public class ItemDb implements IConf, net.ess3.api.IItemDb {
                 col++;
             }
             // Invalid row
-            if (itemName == null || numeric < 0) {
+            if (itemName == null || type == null) {
                 continue;
             }
             durabilities.put(itemName, data);
-            items.put(itemName, numeric);
+            items.put(itemName, type);
             if (nbt != null) {
                 nbtData.put(itemName, nbt);
             }
 
-            ItemData itemData = new ItemData(numeric, data);
+            ItemData itemData = new ItemData(type, data);
             if (names.containsKey(itemData)) {
                 List<String> nameList = names.get(itemData);
                 nameList.add(itemName);
@@ -127,7 +132,7 @@ public class ItemDb implements IConf, net.ess3.api.IItemDb {
 
     @Override
     public ItemStack get(final String id) throws Exception {
-        int itemid = 0;
+        Material mat;
         String itemname;
         short metaData = 0;
         Matcher parts = splitPattern.matcher(id);
@@ -138,41 +143,30 @@ public class ItemDb implements IConf, net.ess3.api.IItemDb {
             itemname = id;
         }
 
-        if (NumberUtil.isInt(itemname)) {
-            itemid = Integer.parseInt(itemname);
-        } else if (NumberUtil.isInt(id)) {
-            itemid = Integer.parseInt(id);
-        } else {
+        mat = Material.matchMaterial(itemname);
+        if (mat == null) {
             itemname = itemname.toLowerCase(Locale.ENGLISH);
         }
 
-        if (itemid < 1) {
+        if (mat == null) {
             if (items.containsKey(itemname)) {
-                itemid = items.get(itemname);
+                mat = items.get(itemname);
                 if (durabilities.containsKey(itemname) && metaData == 0) {
                     metaData = durabilities.get(itemname);
                 }
-            } else if (Material.getMaterial(itemname.toUpperCase(Locale.ENGLISH)) != null) {
-                Material bMaterial = Material.getMaterial(itemname.toUpperCase(Locale.ENGLISH));
-                itemid = bMaterial.getId();
             } else {
                 try {
-                    Material bMaterial = Bukkit.getUnsafe().getMaterialFromInternalName(itemname.toLowerCase(Locale.ENGLISH));
-                    itemid = bMaterial.getId();
+                    mat = Bukkit.getUnsafe().getMaterialFromInternalName(itemname.toLowerCase(Locale.ENGLISH));
                 } catch (Throwable throwable) {
                     throw new Exception(tl("unknownItemName", itemname), throwable);
                 }
             }
         }
 
-        if (itemid < 1) {
+        if (mat == null) {
             throw new Exception(tl("unknownItemName", itemname));
         }
-
-        final Material mat = Material.getMaterial(itemid);
-        if (mat == null) {
-            throw new Exception(tl("unknownItemId", itemid));
-        }
+        
         ItemStack retval = new ItemStack(mat);
         if (nbtData.containsKey(itemname)) {
             String nbt = nbtData.get(itemname);
@@ -223,7 +217,7 @@ public class ItemDb implements IConf, net.ess3.api.IItemDb {
             }
         } else if (args[0].equalsIgnoreCase("blocks")) {
             for (ItemStack stack : user.getBase().getInventory().getContents()) {
-                if (stack == null || stack.getTypeId() > 255 || stack.getType() == Material.AIR) {
+                if (stack == null || !stack.getType().isBlock() || stack.getType() == Material.AIR) {
                     continue;
                 }
                 is.add(stack.clone());
@@ -241,10 +235,10 @@ public class ItemDb implements IConf, net.ess3.api.IItemDb {
 
     @Override
     public String names(ItemStack item) {
-        ItemData itemData = new ItemData(item.getTypeId(), item.getDurability());
+        ItemData itemData = new ItemData(item.getType(), item.getDurability());
         List<String> nameList = names.get(itemData);
         if (nameList == null) {
-            itemData = new ItemData(item.getTypeId(), (short) 0);
+            itemData = new ItemData(item.getType(), (short) 0);
             nameList = names.get(itemData);
             if (nameList == null) {
                 return null;
@@ -259,10 +253,10 @@ public class ItemDb implements IConf, net.ess3.api.IItemDb {
 
     @Override
     public String name(ItemStack item) {
-        ItemData itemData = new ItemData(item.getTypeId(), item.getDurability());
+        ItemData itemData = new ItemData(item.getType(), item.getDurability());
         String name = primaryName.get(itemData);
         if (name == null) {
-            itemData = new ItemData(item.getTypeId(), (short) 0);
+            itemData = new ItemData(item.getType(), (short) 0);
             name = primaryName.get(itemData);
             if (name == null) {
                 return null;
@@ -421,16 +415,16 @@ public class ItemDb implements IConf, net.ess3.api.IItemDb {
     }
 
     static class ItemData {
-        final private int itemNo;
+        final private Material itemType;
         final private short itemData;
 
-        ItemData(final int itemNo, final short itemData) {
-            this.itemNo = itemNo;
+        ItemData(final Material itemType, final short itemData) {
+            this.itemType = itemType;
             this.itemData = itemData;
         }
 
-        public int getItemNo() {
-            return itemNo;
+        public Material getItemType() {
+            return itemType;
         }
 
         public short getItemData() {
@@ -439,7 +433,7 @@ public class ItemDb implements IConf, net.ess3.api.IItemDb {
 
         @Override
         public int hashCode() {
-            return (31 * itemNo) ^ itemData;
+            return (31 * itemType.hashCode()) ^ itemData;
         }
 
         @Override
@@ -451,7 +445,7 @@ public class ItemDb implements IConf, net.ess3.api.IItemDb {
                 return false;
             }
             ItemData pairo = (ItemData) o;
-            return this.itemNo == pairo.getItemNo() && this.itemData == pairo.getItemData();
+            return this.itemType == pairo.getItemType() && this.itemData == pairo.getItemData();
         }
     }
 

@@ -8,6 +8,7 @@ import com.earth2me.essentials.craftbukkit.InventoryWorkaround;
 import com.earth2me.essentials.utils.NumberUtil;
 import com.earth2me.essentials.utils.StringUtil;
 
+import org.bukkit.Material;
 import org.bukkit.Server;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -83,7 +84,8 @@ public class Commandclearinventory extends EssentialsCommand {
 
     protected void clearHandler(CommandSource sender, Player player, String[] args, int offset, boolean showExtended) throws Exception {
         short data = -1;
-        int type = -1;
+        Material type = null;
+        boolean clearArmorToo = false;
         int amount = -1;
 
         if (args.length > (offset + 1) && NumberUtil.isInt(args[(offset + 1)])) {
@@ -91,11 +93,11 @@ public class Commandclearinventory extends EssentialsCommand {
         }
         if (args.length > offset) {
             if (args[offset].equalsIgnoreCase("**")) {
-                type = -2;
+                clearArmorToo = true;
             } else if (!args[offset].equalsIgnoreCase("*")) {
                 final String[] split = args[offset].split(":");
                 final ItemStack item = ess.getItemDb().get(split[0]);
-                type = item.getTypeId();
+                type = item.getType();
 
                 if (split.length > 1 && NumberUtil.isInt(split[1])) {
                     data = Short.parseShort(split[1]);
@@ -105,19 +107,17 @@ public class Commandclearinventory extends EssentialsCommand {
             }
         }
 
-        if (type == -1) // type -1 represents wildcard or all items
+        if (type == null) // type == null represents wildcard or all items
         {
-            if (showExtended) {
-                sender.sendMessage(tl("inventoryClearingAllItems", player.getDisplayName()));
-            }
+            String tl = "inventoryClearingAllItems";
             InventoryWorkaround.clearInventoryNoArmor(player.getInventory());
-        } else if (type == -2) // type -2 represents double wildcard or all items and armor
-        {
-            if (showExtended) {
-                sender.sendMessage(tl("inventoryClearingAllArmor", player.getDisplayName()));
+            if (clearArmorToo) {
+                tl = "inventoryClearingAllArmor";
+                player.getInventory().setArmorContents(null);
             }
-            InventoryWorkaround.clearInventoryNoArmor(player.getInventory());
-            player.getInventory().setArmorContents(null);
+            if (showExtended) {
+                sender.sendMessage(tl(tl, player.getDisplayName()));
+            }
         } else {
             if (data == -1) // data -1 means that all subtypes will be cleared
             {
@@ -125,7 +125,7 @@ public class Commandclearinventory extends EssentialsCommand {
                 if (showExtended) {
                     sender.sendMessage(tl("inventoryClearingAllStack", stack.getType().toString().toLowerCase(Locale.ENGLISH), player.getDisplayName()));
                 }
-                player.getInventory().clear(type, data);
+                player.getInventory().remove(type);
             } else if (amount == -1) // amount -1 means all items will be cleared
             {
                 ItemStack stack = new ItemStack(type, BASE_AMOUNT, data);

@@ -207,6 +207,11 @@ public class FakeWorld implements World {
     public boolean setSpawnLocation(int i, int i1, int i2) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
+    
+    @Override
+    public boolean setSpawnLocation(Location loc) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
 
     @Override
     public long getTime() {
