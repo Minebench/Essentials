@@ -100,7 +100,7 @@ public abstract class UserData extends PlayerExtension implements IConf {
         BigDecimal result = ess.getSettings().getStartingBalance();
         BigDecimal maxMoney = ess.getSettings().getMaxMoney();
         BigDecimal minMoney = ess.getSettings().getMinMoney();
-        
+
         // NPC banks are not actual player banks, as such they do not have player starting balance.
         if (isNPC()) {
             result = BigDecimal.ZERO;
@@ -467,10 +467,11 @@ public abstract class UserData extends PlayerExtension implements IConf {
     }
 
     public void setIgnoredPlayer(IUser user, boolean set) {
+        final String entry = user.getName().toLowerCase(Locale.ENGLISH);
         if (set) {
-            ignoredPlayers.add(user.getName().toLowerCase(Locale.ENGLISH));
+            if (!ignoredPlayers.contains(entry)) ignoredPlayers.add(entry);
         } else {
-            ignoredPlayers.remove(user.getName().toLowerCase(Locale.ENGLISH));
+            ignoredPlayers.remove(entry);
         }
         setIgnoredPlayers(ignoredPlayers);
     }
@@ -806,7 +807,7 @@ public abstract class UserData extends PlayerExtension implements IConf {
         if (!config.isConfigurationSection("timestamps.command-cooldowns")) {
             return null;
         }
-        
+
         // See saveCommandCooldowns() for deserialization explanation
         List<Map<?, ?>> section = config.getMapList("timestamps.command-cooldowns");
         HashMap<Pattern, Long> result = new HashMap<>();
@@ -845,19 +846,19 @@ public abstract class UserData extends PlayerExtension implements IConf {
             saveCommandCooldowns();
         }
     }
-    
+
     public boolean clearCommandCooldown(Pattern pattern) {
         if (this.commandCooldowns == null) {
             return false; // false for no modification
         }
-        
+
         if(this.commandCooldowns.remove(pattern) != null) {
             saveCommandCooldowns();
             return true;
         }
         return false;
     }
-    
+
     private void saveCommandCooldowns() {
         // Serialization explanation:
         //
@@ -898,14 +899,14 @@ public abstract class UserData extends PlayerExtension implements IConf {
         save();
     }
 
-    private boolean confirmPay = true; // players accept pay confirmation by default
+    private Boolean confirmPay;
 
-    public boolean _getConfirmPay() {
-        return config.getBoolean("confirm-pay", true);
+    private Boolean _getConfirmPay() {
+        return (Boolean) config.get("confirm-pay");
     }
 
     public boolean isPromptingPayConfirm() {
-        return confirmPay;
+        return confirmPay != null ? confirmPay : ess.getSettings().isConfirmCommandEnabledByDefault("pay");
     }
 
     public void setPromptingPayConfirm(boolean prompt) {
@@ -914,14 +915,14 @@ public abstract class UserData extends PlayerExtension implements IConf {
         save();
     }
 
-    private boolean confirmClear = true; // players accept clear confirmation by default
+    private Boolean confirmClear;
 
-    public boolean _getConfirmClear() {
-        return config.getBoolean("confirm-clear", true);
+    private Boolean _getConfirmClear() {
+        return (Boolean) config.get("confirm-clear");
     }
 
     public boolean isPromptingClearConfirm() {
-        return confirmClear;
+        return confirmClear != null ? confirmClear : ess.getSettings().isConfirmCommandEnabledByDefault("clearinventory");
     }
 
     public void setPromptingClearConfirm(boolean prompt) {
